@@ -23,7 +23,7 @@ end
 function lovr.update(dt)
     if cooldown <= 0 then
         cooldown = cooldown + spawnInterval
-        table.insert(rings, Ring:new({ z = 100, lifetime = 15 }))
+        table.insert(rings, Ring:new({ z = 100, lifetime = 10 }))
     end
 
     for i, v in ipairs(rings) do
@@ -51,7 +51,7 @@ end
 
 function lovr.draw()
     for _, v in ipairs(rings) do
-        lovr.graphics.setColor(0.3, 0.1, 1.0)
+        lovr.graphics.setColor(1.0, 0.1, 0.5)
 
         -- fade in
         if v.t <= 1 then
