@@ -1,38 +1,47 @@
 local ecs = require "ecs"
 
 -- world of entities
-local visuals = ecs.World:new()
+local visuals = ecs.world()
 
 local spawnInterval = 1.0
 local cooldown = 0
 
--- let's define a SINGLE ring component that has everything we need.
-local ring = ecs.Component:new("ring", {
-    color = { r = 1.0, g = 0.1, b = 0.5 },
-    z = -100,
-})
-
 -- an updatesystem for the ring
-local updateRings = ecs.System:new({ "ring" }, function(e, dt)
-    e.ring.data.z = e.ring.data.z + 0.1
+local updateRings = ecs.system({ "location", "radius", "color" }, function(e, dt)
+    e.location.z = e.location.z + 0.1
 end)
 
 -- a drawsystem for the ring
-local drawRings = ecs.System:new({ "ring" }, function(e)
-    lovr.graphics.setColor(e.ring.data.color.r, e.ring.data.color.g, e.ring.data.color.b)
-    lovr.graphics.circle("line", 0, 0, e.ring.data.z, 10)
+local drawRings = ecs.system({ "location", "radius", "color" }, function(e)
+    lovr.graphics.setColor(e.color.r, e.color.g, e.color.b)
+    lovr.graphics.circle("line", 0, 0, e.location.z, 10)
 end)
 
 function lovr.update(dt)
-    if cooldown >= spawnInterval then
-        cooldown = 0
-        visuals:spawn():add(ring:new())
+    if cooldown <= 0 then
+        cooldown = spawnInterval
+        visuals:spawn({
+            -- location component
+            location = {
+                x = 0,
+                y = 0,
+                z = -100
+            },
+            -- radius component
+            radius = 10,
+            -- color component
+            color = {
+                r = 0.6,
+                g = 0.1,
+                b = 1.0
+            }
+        })
     end
 
     -- updatesystems
     visuals:update({ updateRings }, dt)
 
-    cooldown = cooldown + dt
+    cooldown = cooldown - dt
 end
 
 function lovr.draw()
