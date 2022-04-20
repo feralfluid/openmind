@@ -13,10 +13,12 @@ function ecs.world()
     }, World)
 end
 
-function World:spawn(e)
-    local e = e or {}
-    table.insert(self.entities, e)
-    return e
+function World:spawn(components)
+    local entity = ecs.entity()
+    for _, component in ipairs(components) do
+        entity[component.__name] = component:new()
+    end
+    table.insert(self.entities, entity)
 end
 
 function World:update(filter, ...)
@@ -31,13 +33,45 @@ function World:update(filter, ...)
     end
 end
 
+-- entity
+local Entity = {}
+Entity.__index = Entity
+
+-- new entity
+function ecs.entity()
+    return setmetatable({}, Entity)
+end
+
+function Entity:with(components)
+
+end
+
+-- component
+local Component = {}
+Component.__index = Component
+
+-- new component
+function ecs.component(name, data)
+    local component = data or {}
+    component.__name = name
+    return setmetatable(component, Component)
+end
+
+function Component:new()
+    return setmetatable({}, { __index = self })
+end
+
 -- system
 local System = {}
 System.__index = System
 System.__call = function(self, entity, ...)
-    if self:match(entity) then
-        self.fn(entity, ...)
+    for _, componentName in ipairs(self.query) do
+        if not entity[componentName] then
+            return
+        end
     end
+
+    self.fn(entity, ...)
 end
 
 -- new system
