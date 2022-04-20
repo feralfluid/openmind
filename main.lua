@@ -1,72 +1,47 @@
-local Ring = {
-    x = 0,
-    y = 0,
-    z = 0,
-    r = 0,
-    t = 0,
-    lifetime = 0
-}
+local ecs = require "ecs"
 
-function Ring:new(o)
-    self.__index = self
-    return setmetatable(o or {}, self)
-end
+-- world of entities
+local visuals = ecs.World:new()
 
-local rings = {}
-local spawnInterval = 0.5
+local spawnInterval = 1.0
 local cooldown = 0
 
-function lovr.load()
+-- let's define a SINGLE ring component that has everything we need.
+local ring = ecs.Component:new("ring", {
+    color = { r = 1.0, g = 0.1, b = 0.5 },
+    z = -100,
+})
 
-end
+-- an updatesystem for the ring
+local updateRings = ecs.System:new({ "ring" }, function(e, dt)
+    e.ring.data.z = e.ring.data.z + 0.1
+end)
+
+-- a drawsystem for the ring
+local drawRings = ecs.System:new({ "ring" }, function(e)
+    lovr.graphics.setColor(e.ring.data.color.r, e.ring.data.color.g, e.ring.data.color.b)
+    lovr.graphics.circle("line", 0, 0, e.ring.data.z, 10)
+end)
 
 function lovr.update(dt)
-    if cooldown <= 0 then
-        cooldown = cooldown + spawnInterval
-        table.insert(rings, Ring:new({ z = 100, lifetime = 10 }))
+    if cooldown >= spawnInterval then
+        cooldown = 0
+        visuals:spawn():add(ring:new())
     end
 
-    for i, v in ipairs(rings) do
-        -- increase life timer
-        v.t = v.t + dt
+    -- updatesystems
+    visuals:update({ updateRings }, dt)
 
-        -- make em bigger for a bit
-        if v.t < 1 then
-            v.r = inOutSine(v.t, 0, 10, 1)
-        else
-            v.r = 10
-        end
-
-        -- move them all forward!
-        v.z = v.z - 0.1
-
-        -- despawn eventually.
-        if v.z <= -100 then
-            table.remove(rings, i)
-        end
-    end
-
-    cooldown = cooldown - dt
+    cooldown = cooldown + dt
 end
 
 function lovr.draw()
-    for _, v in ipairs(rings) do
-        lovr.graphics.setColor(1.0, 0.1, 0.5)
+    -- hi :3
+    lovr.graphics.setColor(1.0, 1.0, 1.0)
+    lovr.graphics.print("hello world!", 0, 1, -1)
 
-        -- fade in
-        if v.t <= 1 then
-            local r, g, b = lovr.graphics.getColor()
-            lovr.graphics.setColor(r, g, b, v.t)
-        end
-
-        -- fade out
-        if v.lifetime - v.t <= 1 then
-            local r, g, b = lovr.graphics.getColor()
-            lovr.graphics.setColor(r, g, b, v.lifetime - v.t)
-        end
-
-        lovr.graphics.circle("line", v.x, v.y, v.z, v.r)
-    end
+    -- drawsystems
+    visuals:update({ drawRings })
 end
 
 function inOutSine(t, b, c, d)
