@@ -1,72 +1,51 @@
-local Ring = {
-    x = 0,
-    y = 0,
-    z = 0,
-    r = 0,
-    t = 0,
-    lifetime = 0
-}
+local ecs = require "ecs"
 
-function Ring:new(o)
-    self.__index = self
-    return setmetatable(o or {}, self)
-end
+-- world of entities
+local visuals = ecs.world()
 
-local rings = {}
-local spawnInterval = 0.5
+local spawnInterval = 1.0
 local cooldown = 0
 
-function lovr.load()
+-- ring component
+local ring = ecs.component("ring", {
+    x = 0,
+    y = 0,
+    z = -100,
+    radius = 10,
+    r = 0.6,
+    g = 0.1,
+    b = 1.0,
+})
 
-end
+-- an updatesystem for the ring
+local updateRings = ecs.system({ "ring" }, function(e, dt)
+    e.ring.z = e.ring.z + 0.1
+end)
+
+-- a drawsystem for the ring
+local drawRings = ecs.system({ "ring" }, function(e)
+    lovr.graphics.setColor(e.ring.r, e.ring.g, e.ring.b)
+    lovr.graphics.circle("line", 0, 0, e.ring.z, 10)
+end)
 
 function lovr.update(dt)
     if cooldown <= 0 then
-        cooldown = cooldown + spawnInterval
-        table.insert(rings, Ring:new({ z = 100, lifetime = 10 }))
+        cooldown = spawnInterval
+        visuals:spawn({ ring })
     end
 
-    for i, v in ipairs(rings) do
-        -- increase life timer
-        v.t = v.t + dt
-
-        -- make em bigger for a bit
-        if v.t < 1 then
-            v.r = inOutSine(v.t, 0, 10, 1)
-        else
-            v.r = 10
-        end
-
-        -- move them all forward!
-        v.z = v.z - 0.1
-
-        -- despawn eventually.
-        if v.z <= -100 then
-            table.remove(rings, i)
-        end
-    end
+    -- updatesystems
+    visuals:update({ updateRings }, dt)
 
     cooldown = cooldown - dt
 end
 
 function lovr.draw()
-    for _, v in ipairs(rings) do
-        lovr.graphics.setColor(1.0, 0.1, 0.5)
+    -- drawsystems
+    visuals:update({ drawRings })
 
-        -- fade in
-        if v.t <= 1 then
-            local r, g, b = lovr.graphics.getColor()
-            lovr.graphics.setColor(r, g, b, v.t)
-        end
-
-        -- fade out
-        if v.lifetime - v.t <= 1 then
-            local r, g, b = lovr.graphics.getColor()
-            lovr.graphics.setColor(r, g, b, v.lifetime - v.t)
-        end
-
-        lovr.graphics.circle("line", v.x, v.y, v.z, v.r)
-    end
+    lovr.graphics.setColor(0xFFFFFF)
+    lovr.graphics.print("hello world!", 0, 1, -1)
 end
 
 function inOutSine(t, b, c, d)
